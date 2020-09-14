@@ -1,4 +1,4 @@
-module github.com/uscott.com/go-restarter
+module github.com/uscott/go-restarter
 
 go 1.14
 
