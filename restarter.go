@@ -28,6 +28,7 @@ type Restarter struct {
 type Subordinate interface {
 	Done() chan bool
 	Error() chan error
+	RestartWait() time.Duration
 	Run()
 }
 
@@ -37,13 +38,18 @@ type Listener struct {
 	Filename string `json:"filename"`
 }
 
-func NewRestarter(address string) *Restarter {
+func NewRestarter(address string) (*Restarter, error) {
 	if address == "" {
 		address = DefaultAddress
 	}
+	var err error
 	r := &Restarter{Address: address}
-	r.NetListener = new(net.Listener)
-	r.Server = new(http.Server)
+	if err = r.CreateOrImportListener(); err != nil {
+		return nil, err
+	}
+	if err = r.StartServer(); err != nil {
+		return nil, err
+	}
 	r.Signal = make(chan os.Signal, 1024)
 	return r
 }
@@ -187,6 +193,8 @@ func (r *Restarter) Run() error {
 			switch s {
 			case syscall.SIGHUP:
 				// Fork a child process.
+				w := r.Sub.RestartWait()
+				time.Sleep(w)
 				p, err := r.ForkChild()
 				if err != nil {
 					fmt.Printf("Unable to fork child: %v.\n", err)
@@ -201,6 +209,8 @@ func (r *Restarter) Run() error {
 				return r.Server.Shutdown(ctx)
 			case syscall.SIGUSR2:
 				// Fork a child process.
+				w := r.Sub.RestartWait()
+				time.Sleep(w)
 				p, err := r.ForkChild()
 				if err != nil {
 					fmt.Printf("Unable to fork child: %v.\n", err)
@@ -221,6 +231,8 @@ func (r *Restarter) Run() error {
 			case nil:
 			default:
 				// Fork a child process.
+				w := r.Sub.RestartWait()
+				time.Sleep(w)
 				p, err := r.ForkChild()
 				if err != nil {
 					fmt.Printf("Unable to fork child: %v.\n", err)
