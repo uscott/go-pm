@@ -249,10 +249,10 @@ func (r *Restarter) Run() error {
 				fmt.Printf("Forked child %v\n", p.Pid)
 				// Create a context that will expire in 5 seconds and use this as a
 				// timeout to Shutdown.
-				// ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-				// defer cancel()
+				ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+				defer cancel()
 				// Return any errors during shutdown.
-				// return r.Server.Shutdown(ctx)
+				return r.Server.Shutdown(ctx)
 			}
 		case b := <-r.Sub.Done():
 			switch b {
