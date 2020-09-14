@@ -209,6 +209,7 @@ func (r *Restarter) Run() error {
 				// timeout to Shutdown.
 				ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 				defer cancel()
+				r.Sub = nil
 				// Return any errors during shutdown.
 				return r.Server.Shutdown(ctx)
 			case syscall.SIGUSR2:
@@ -229,6 +230,7 @@ func (r *Restarter) Run() error {
 				fmt.Println("Shutting down")
 				ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 				defer cancel()
+				r.Sub = nil
 				// Return any errors during shutdown.
 				return r.Server.Shutdown(ctx)
 			}
@@ -251,6 +253,7 @@ func (r *Restarter) Run() error {
 				// timeout to Shutdown.
 				ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 				defer cancel()
+				r.Sub = nil
 				// Return any errors during shutdown.
 				return r.Server.Shutdown(ctx)
 			}
@@ -261,6 +264,7 @@ func (r *Restarter) Run() error {
 				fmt.Println("Done")
 				ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 				defer cancel()
+				r.Sub = nil
 				// Return any errors during shutdown.
 				return r.Server.Shutdown(ctx)
 			}
