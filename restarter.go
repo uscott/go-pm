@@ -196,7 +196,7 @@ func (r *Restarter) Run() error {
 			switch s {
 			case syscall.SIGHUP:
 				// Fork a child process.
-				w := r.Sub.tWaitTime()
+				w := r.Sub.WaitTime()
 				time.Sleep(w)
 				p, err := r.ForkChild()
 				if err != nil {
