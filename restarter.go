@@ -15,6 +15,8 @@ import (
 	"github.com/uscott/go-tools/errs"
 )
 
+const DefaultAddress string = ":8080"
+
 type Restarter struct {
 	Address     string
 	NetListener *net.Listener
@@ -30,17 +32,19 @@ type Subordinate interface {
 }
 
 type Listener struct {
-	Address  string `json:"addr"`
+	Address  string `json:"address"`
 	FD       int    `json:"fd"`
 	Filename string `json:"filename"`
 }
 
 func NewRestarter(address string) *Restarter {
+	if address == "" {
+		address = DefaultAddress
+	}
 	r := &Restarter{Address: address}
 	r.NetListener = new(net.Listener)
 	r.Server = new(http.Server)
 	r.Signal = make(chan os.Signal, 1024)
-	r.X = NewCX()
 	return r
 }
 
@@ -55,6 +59,9 @@ func (r *Restarter) ImportListener() (*net.Listener, error) {
 	err := json.Unmarshal([]byte(listenerEnv), &l)
 	if err != nil {
 		return nil, err
+	}
+	if r.Address == "" {
+		r.Address = DefaultAddress
 	}
 	address := r.Address
 	if l.Address != address {
@@ -77,6 +84,9 @@ func (r *Restarter) ImportListener() (*net.Listener, error) {
 }
 
 func (r *Restarter) CreateListener() (*net.Listener, error) {
+	if r.Address == "" {
+		r.Address = DefaultAddress
+	}
 	address := r.Address
 	ln, err := net.Listen("tcp", address)
 	if err != nil {
@@ -126,6 +136,9 @@ func (r *Restarter) ForkChild() (*os.Process, error) {
 		return nil, err
 	}
 	defer lnFile.Close()
+	if r.Address == "" {
+		r.Address = DefaultAddress
+	}
 	address := r.Address
 	l := Listener{
 		Address:  address,
@@ -240,6 +253,9 @@ func (r *Restarter) Handler(w http.ResponseWriter, req *http.Request) {
 
 func (r *Restarter) StartServer() error {
 	http.HandleFunc("/hello", r.Handler)
+	if r.Address == "" {
+		r.Address = DefaultAddress
+	}
 	r.Server = &http.Server{
 		Addr: r.Address,
 	}
