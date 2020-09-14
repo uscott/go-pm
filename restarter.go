@@ -51,7 +51,7 @@ func NewRestarter(address string) (*Restarter, error) {
 		return nil, err
 	}
 	r.Signal = make(chan os.Signal, 1024)
-	return r
+	return r, nil
 }
 
 func (r *Restarter) ImportListener() (*net.Listener, error) {
