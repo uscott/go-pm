@@ -28,8 +28,8 @@ type Restarter struct {
 type Subordinate interface {
 	Done() chan bool
 	Error() chan error
-	RestartWait() time.Duration
 	Run()
+	WaitTime() time.Duration
 }
 
 type Listener struct {
@@ -171,6 +171,7 @@ func (r *Restarter) ForkChild() (*os.Process, error) {
 	if err != nil {
 		return nil, err
 	}
+	fmt.Printf("Exec Name = %v\n", execName)
 	execDir := filepath.Dir(execName)
 	// Spawn child process.
 	p, err := os.StartProcess(execName, []string{execName}, &os.ProcAttr{
@@ -195,7 +196,7 @@ func (r *Restarter) Run() error {
 			switch s {
 			case syscall.SIGHUP:
 				// Fork a child process.
-				w := r.Sub.RestartWait()
+				w := r.Sub.tWaitTime()
 				time.Sleep(w)
 				p, err := r.ForkChild()
 				if err != nil {
@@ -211,7 +212,7 @@ func (r *Restarter) Run() error {
 				return r.Server.Shutdown(ctx)
 			case syscall.SIGUSR2:
 				// Fork a child process.
-				w := r.Sub.RestartWait()
+				w := r.Sub.WaitTime()
 				time.Sleep(w)
 				p, err := r.ForkChild()
 				if err != nil {
@@ -233,7 +234,7 @@ func (r *Restarter) Run() error {
 			case nil:
 			default:
 				// Fork a child process.
-				w := r.Sub.RestartWait()
+				w := r.Sub.WaitTime()
 				time.Sleep(w)
 				p, err := r.ForkChild()
 				if err != nil {
