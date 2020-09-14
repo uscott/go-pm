@@ -44,13 +44,15 @@ func NewRestarter(address string) (*Restarter, error) {
 	}
 	var err error
 	r := &Restarter{Address: address}
+	r.NetListener = new(net.Listener)
+	r.Server = new(http.Server)
+	r.Signal = make(chan os.Signal, 1024)
 	if err = r.CreateOrImportListener(); err != nil {
 		return nil, err
 	}
 	if err = r.StartServer(); err != nil {
 		return nil, err
 	}
-	r.Signal = make(chan os.Signal, 1024)
 	return r, nil
 }
 
