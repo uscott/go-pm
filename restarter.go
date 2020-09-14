@@ -26,6 +26,7 @@ type Restarter struct {
 }
 
 type Subordinate interface {
+	Deallocate()
 	Done() chan bool
 	Error() chan error
 	Run()
@@ -230,7 +231,7 @@ func (r *Restarter) Run() error {
 				fmt.Println("Shutting down")
 				ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 				defer cancel()
-				r.Sub = nil
+				r.Sub.Deallocate()
 				// Return any errors during shutdown.
 				return r.Server.Shutdown(ctx)
 			}
@@ -253,7 +254,7 @@ func (r *Restarter) Run() error {
 				// timeout to Shutdown.
 				ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 				defer cancel()
-				r.Sub = nil
+				r.Sub.Deallocate()
 				// Return any errors during shutdown.
 				return r.Server.Shutdown(ctx)
 			}
@@ -264,7 +265,7 @@ func (r *Restarter) Run() error {
 				fmt.Println("Done")
 				ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 				defer cancel()
-				r.Sub = nil
+				r.Sub.Deallocate()
 				// Return any errors during shutdown.
 				return r.Server.Shutdown(ctx)
 			}
