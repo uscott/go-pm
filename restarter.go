@@ -175,7 +175,8 @@ func (r *Restarter) ForkChild() (*os.Process, error) {
 	fmt.Printf("Exec Name = %v\n", execName)
 	execDir := filepath.Dir(execName)
 	// Spawn child process.
-	p, err := os.StartProcess(execName, []string{execName}, &os.ProcAttr{
+	// p, err := os.StartProcess(execName, []string{execName}, &os.ProcAttr{
+	p, err := os.StartProcess(execName, os.Args, &os.ProcAttr{
 		Dir:   execDir,
 		Env:   environment,
 		Files: files,
