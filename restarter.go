@@ -193,7 +193,7 @@ func (r *Restarter) Run() error {
 	for {
 		select {
 		case s := <-r.Signal:
-			fmt.Printf("%v signal received.\n", s)
+			fmt.Printf("%v signal received\n", s)
 			switch s {
 			case syscall.SIGHUP:
 				// Fork a child process.
