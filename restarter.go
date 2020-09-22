@@ -28,7 +28,7 @@ type Restarter struct {
 type Subordinate interface {
 	Done() chan bool
 	Error() chan error
-	Initiate()
+	Initialize()
 	Run()
 	WaitTime() time.Duration
 }

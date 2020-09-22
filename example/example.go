@@ -23,7 +23,7 @@ func (x *CX) Error() chan error {
 	return x.ChError
 }
 
-func (x *CX) Initiate() {
+func (x *CX) Initialize() {
 	if x.Subordinate == nil {
 		x.Subordinate = api.NewSubordinate()
 		x.initiated <- true
