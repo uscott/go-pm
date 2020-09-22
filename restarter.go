@@ -28,7 +28,6 @@ type Restarter struct {
 type Subordinate interface {
 	Done() chan bool
 	Error() chan error
-	Initialize()
 	Run()
 	WaitTime() time.Duration
 }
@@ -189,7 +188,6 @@ func (r *Restarter) ForkChild() (*os.Process, error) {
 }
 
 func (r *Restarter) Run() error {
-	go r.Sub.Initialize()
 	go r.Sub.Run()
 	signal.Notify(r.Signal, syscall.SIGHUP, syscall.SIGUSR2, syscall.SIGINT, syscall.SIGQUIT)
 	for {

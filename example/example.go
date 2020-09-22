@@ -12,7 +12,6 @@ import (
 
 type CX struct {
 	*api.Subordinate
-	initiated chan bool
 }
 
 func (x *CX) Done() chan bool {
@@ -23,19 +22,11 @@ func (x *CX) Error() chan error {
 	return x.ChError
 }
 
-func (x *CX) Initialize() {
-	if x.Subordinate == nil {
-		x.Subordinate = api.NewSubordinate()
-		x.initiated <- true
-	}
-}
-
 func (x *CX) WaitTime() time.Duration {
 	return x.Wait
 }
 
 func (x *CX) Run() {
-	<-x.initiated
 	rand.Seed(time.Now().UnixNano())
 	x.Wait = 15 * time.Second
 	for {
@@ -56,7 +47,7 @@ func (x *CX) Run() {
 
 func main() {
 	x := new(CX)
-	x.initiated = make(chan bool)
+	x.Subordinate = api.NewSubordinate()
 	r, err := restarter.NewRestarter(":8008")
 	if err != nil {
 		fmt.Printf("Exiting: %v\n", err.Error())
