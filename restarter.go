@@ -257,15 +257,15 @@ func (r *Restarter) Run() error {
 				return r.Server.Shutdown(ctx)
 			}
 		case b := <-r.Sub.Done():
-			switch b {
-			case false:
-			default:
+			if !b {
 				fmt.Println("Done")
 				ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 				defer cancel()
 				// Return any errors during shutdown.
 				return r.Server.Shutdown(ctx)
 			}
+		default:
+			time.Sleep(100 * time.Millisecond)
 		}
 	}
 }
