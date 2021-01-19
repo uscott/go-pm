@@ -6,7 +6,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/uscott/go-api-deribit/api"
 	restarter "github.com/uscott/go-restarter"
 )
 
