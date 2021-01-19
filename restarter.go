@@ -12,6 +12,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/pkg/errors"
 	"github.com/uscott/go-tools/errs"
 )
 
@@ -125,7 +126,7 @@ func (r *Restarter) CreateOrImportListener() error {
 func (r *Restarter) GetListenerFile() (*os.File, error) {
 	ln := r.NetListener
 	if ln == nil {
-		return nil, errs.ErrNilPtr
+		return nil, errors.Wrap(errs.NilPtrUnexpected, " - NetListener")
 	}
 	switch t := (*ln).(type) {
 	case *net.TCPListener:
