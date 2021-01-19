@@ -10,33 +10,38 @@ import (
 )
 
 type CX struct {
-	*api.Subordinate
+	errorC chan error
+	doneC  chan bool
+	wait   time.Duration
+}
+
+func NewCX() *CX {
+	return &CX{errorC: make(chan error), doneC: make(chan bool)}
 }
 
 func (x *CX) Done() chan bool {
-	return x.ChDone
+	return x.doneC
 }
 
 func (x *CX) Error() chan error {
-	return x.ChError
+	return x.errorC
 }
 
 func (x *CX) WaitTime() time.Duration {
-	return x.Wait
+	return x.wait
 }
 
 func (x *CX) Run() {
 	rand.Seed(time.Now().UnixNano())
-	x.Wait = 15 * time.Second
 	for {
 		n := rand.Int31n(20)
 		fmt.Println(n)
 		switch n {
 		case 0:
-			x.ChError <- fmt.Errorf("n == 0")
+			x.errorC <- fmt.Errorf("n == 0")
 			return
 		case 19:
-			x.ChDone <- true
+			x.doneC <- true
 			return
 		default:
 		}
@@ -45,13 +50,16 @@ func (x *CX) Run() {
 }
 
 func main() {
-	x := new(CX)
-	x.Subordinate = api.NewSubordinate()
+
+	x := NewCX()
+	x.wait = 15 * time.Second
+
 	r, err := restarter.NewRestarter(":8008")
 	if err != nil {
 		fmt.Printf("Exiting: %v\n", err.Error())
 		os.Exit(1)
 	}
+
 	r.Sub = x
 	if err = r.Run(); err != nil {
 		fmt.Printf("Exiting: %v\n", err.Error())
