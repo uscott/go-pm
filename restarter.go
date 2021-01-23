@@ -27,7 +27,7 @@ type Restarter struct {
 }
 
 type Subordinate interface {
-	Done() chan bool
+	Done() chan struct{}
 	Error() chan error
 	Run()
 	WaitTime() time.Duration
@@ -109,7 +109,6 @@ func (r *Restarter) CreateOrImportListener() error {
 	r.NetListener = nil
 	ln, err := r.ImportListener()
 	if err == nil {
-		fmt.Printf("Imported listener file descriptor for %v.\n", r.Address)
 		r.NetListener = ln
 		return nil
 	}
@@ -119,7 +118,6 @@ func (r *Restarter) CreateOrImportListener() error {
 		return err
 	}
 	r.NetListener = ln
-	fmt.Printf("Created listener file descriptor for %v\n", r.Address)
 	return nil
 }
 
@@ -172,7 +170,6 @@ func (r *Restarter) ForkChild() (*os.Process, error) {
 	if err != nil {
 		return nil, err
 	}
-	fmt.Printf("Exec Name = %v\n", execName)
 	execDir := filepath.Dir(execName)
 	// Spawn child process.
 	// p, err := os.StartProcess(execName, []string{execName}, &os.ProcAttr{
@@ -194,19 +191,15 @@ func (r *Restarter) Run() error {
 	for {
 		select {
 		case s := <-r.Signal:
-			fmt.Printf("%v signal received\n", s)
 			switch s {
 			case syscall.SIGHUP:
 				// Fork a child process.
 				w := r.Sub.WaitTime()
-				fmt.Printf("Waiting for %v\n", w)
 				time.Sleep(w)
-				p, err := r.ForkChild()
+				_, err := r.ForkChild()
 				if err != nil {
-					fmt.Printf("Unable to fork child: %v.\n", err)
 					continue
 				}
-				fmt.Printf("Forked child %v\n", p.Pid)
 				// Create a context that will expire in 5 seconds and use this as a
 				// timeout to Shutdown.
 				ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -217,19 +210,14 @@ func (r *Restarter) Run() error {
 			case syscall.SIGUSR2:
 				// Fork a child process.
 				w := r.Sub.WaitTime()
-				fmt.Printf("Waiting for %v\n", w)
 				time.Sleep(w)
-				p, err := r.ForkChild()
+				_, err := r.ForkChild()
 				if err != nil {
-					fmt.Printf("Unable to fork child: %v\n", err)
 					continue
 				}
-				// Print the PID of the forked process and keep waiting for more signals.
-				fmt.Printf("Forked child %v\n", p.Pid)
 			case syscall.SIGINT, syscall.SIGQUIT:
 				// Create a context that will expire in 5 seconds and use this as a
 				// timeout to Shutdown.
-				fmt.Println("Shutting down")
 				ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 				defer cancel()
 				// Return any errors during shutdown.
@@ -240,16 +228,12 @@ func (r *Restarter) Run() error {
 			case nil:
 			default:
 				// Fork a child process.
-				fmt.Println(e.Error())
 				w := r.Sub.WaitTime()
-				fmt.Printf("Waiting for %v\n", w)
 				time.Sleep(w)
-				p, err := r.ForkChild()
+				_, err := r.ForkChild()
 				if err != nil {
-					fmt.Printf("Unable to fork child: %v\n", err)
 					continue
 				}
-				fmt.Printf("Forked child %v\n", p.Pid)
 				// Create a context that will expire in 5 seconds and use this as a
 				// timeout to Shutdown.
 				ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -257,14 +241,11 @@ func (r *Restarter) Run() error {
 				// Return any errors during shutdown.
 				return r.Server.Shutdown(ctx)
 			}
-		case b := <-r.Sub.Done():
-			if !b {
-				fmt.Println("Done")
-				ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-				defer cancel()
-				// Return any errors during shutdown.
-				return r.Server.Shutdown(ctx)
-			}
+		case <-r.Sub.Done():
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+			// Return any errors during shutdown.
+			return r.Server.Shutdown(ctx)
 		default:
 			time.Sleep(100 * time.Millisecond)
 		}

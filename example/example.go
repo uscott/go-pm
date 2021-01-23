@@ -11,15 +11,15 @@ import (
 
 type CX struct {
 	errorC chan error
-	doneC  chan bool
+	doneC  chan struct{}
 	wait   time.Duration
 }
 
 func NewCX() *CX {
-	return &CX{errorC: make(chan error), doneC: make(chan bool)}
+	return &CX{errorC: make(chan error), doneC: make(chan struct{})}
 }
 
-func (x *CX) Done() chan bool {
+func (x *CX) Done() chan struct{} {
 	return x.doneC
 }
 
@@ -41,7 +41,7 @@ func (x *CX) Run() {
 			x.errorC <- fmt.Errorf("n == 0")
 			return
 		case 19:
-			x.doneC <- true
+			x.doneC <- struct{}{}
 			return
 		default:
 		}
