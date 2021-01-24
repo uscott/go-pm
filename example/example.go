@@ -31,6 +31,14 @@ func (x *CX) WaitTime() time.Duration {
 	return x.wait
 }
 
+func (x *CX) OnFork() {
+	fmt.Printf("Forking")
+}
+
+func (x *CX) OnQuit() {
+	fmt.Printf("Exiting")
+}
+
 func (x *CX) Run() {
 	rand.Seed(time.Now().UnixNano())
 	for {
