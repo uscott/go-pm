@@ -1,4 +1,4 @@
-module github.com/uscott/go-restarter
+module github.com/uscott/go-pm
 
 go 1.15
 

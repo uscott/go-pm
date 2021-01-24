@@ -6,7 +6,7 @@ import (
 	"os"
 	"time"
 
-	restarter "github.com/uscott/go-restarter"
+	pm "github.com/uscott/go-pm"
 )
 
 type CX struct {
@@ -39,10 +39,8 @@ func (x *CX) Run() {
 		switch n {
 		case 0:
 			x.errorC <- fmt.Errorf("n == 0")
-			return
 		case 19:
 			x.doneC <- struct{}{}
-			return
 		default:
 		}
 		time.Sleep(5 * time.Second)
@@ -54,15 +52,15 @@ func main() {
 	x := NewCX()
 	x.wait = 15 * time.Second
 
-	r, err := restarter.NewRestarter(":8008")
+	pm, err := pm.NewProcessManager(":8008")
 	if err != nil {
 		fmt.Printf("Exiting: %v\n", err.Error())
 		os.Exit(1)
 	}
 
-	r.Sub = x
-	if err = r.Run(); err != nil {
-		fmt.Printf("Exiting: %v\n", err.Error())
+	pm.Sub = x
+	if err = pm.Run(); err != nil {
+		fmt.Printf("Error, exiting: %v\n", err)
 		os.Exit(1)
 	}
 	fmt.Println("Exiting")

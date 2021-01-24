@@ -1,4 +1,4 @@
-package restarter
+package pm
 
 import (
 	"context"
@@ -18,7 +18,7 @@ import (
 
 const DefaultAddress string = ":8080"
 
-type Restarter struct {
+type ProcessManager struct {
 	Address     string
 	NetListener *net.Listener
 	Server      *http.Server
@@ -39,25 +39,25 @@ type Listener struct {
 	Filename string `json:"filename"`
 }
 
-func NewRestarter(address string) (*Restarter, error) {
+func NewProcessManager(address string) (*ProcessManager, error) {
 	if address == "" {
 		address = DefaultAddress
 	}
 	var err error
-	r := &Restarter{Address: address}
-	r.NetListener = new(net.Listener)
-	r.Server = new(http.Server)
-	r.Signal = make(chan os.Signal, 1024)
-	if err = r.CreateOrImportListener(); err != nil {
+	pm := &ProcessManager{Address: address}
+	pm.NetListener = new(net.Listener)
+	pm.Server = new(http.Server)
+	pm.Signal = make(chan os.Signal, 1024)
+	if err = pm.CreateOrImportListener(); err != nil {
 		return nil, err
 	}
-	if err = r.StartServer(); err != nil {
+	if err = pm.StartServer(); err != nil {
 		return nil, err
 	}
-	return r, nil
+	return pm, nil
 }
 
-func (r *Restarter) ImportListener() (*net.Listener, error) {
+func (p *ProcessManager) ImportListener() (*net.Listener, error) {
 	// Extract the encoded listener metadata from the environment.
 	listenerEnv := os.Getenv("LISTENER")
 	if listenerEnv == "" {
@@ -69,10 +69,10 @@ func (r *Restarter) ImportListener() (*net.Listener, error) {
 	if err != nil {
 		return nil, err
 	}
-	if r.Address == "" {
-		r.Address = DefaultAddress
+	if p.Address == "" {
+		p.Address = DefaultAddress
 	}
-	address := r.Address
+	address := p.Address
 	if l.Address != address {
 		return nil, fmt.Errorf("unable to find listener for %v", address)
 	}
@@ -92,11 +92,11 @@ func (r *Restarter) ImportListener() (*net.Listener, error) {
 	return &ln, nil
 }
 
-func (r *Restarter) CreateListener() (*net.Listener, error) {
-	if r.Address == "" {
-		r.Address = DefaultAddress
+func (p *ProcessManager) CreateListener() (*net.Listener, error) {
+	if p.Address == "" {
+		p.Address = DefaultAddress
 	}
-	address := r.Address
+	address := p.Address
 	ln, err := net.Listen("tcp", address)
 	if err != nil {
 		return nil, err
@@ -104,25 +104,25 @@ func (r *Restarter) CreateListener() (*net.Listener, error) {
 	return &ln, nil
 }
 
-func (r *Restarter) CreateOrImportListener() error {
+func (p *ProcessManager) CreateOrImportListener() error {
 	// Try and import a listener for addr. If it's found, use it.
-	r.NetListener = nil
-	ln, err := r.ImportListener()
+	p.NetListener = nil
+	ln, err := p.ImportListener()
 	if err == nil {
-		r.NetListener = ln
+		p.NetListener = ln
 		return nil
 	}
 	// No listener was imported, that means this process has to create one.
-	ln, err = r.CreateListener()
+	ln, err = p.CreateListener()
 	if err != nil {
 		return err
 	}
-	r.NetListener = ln
+	p.NetListener = ln
 	return nil
 }
 
-func (r *Restarter) GetListenerFile() (*os.File, error) {
-	ln := r.NetListener
+func (p *ProcessManager) GetListenerFile() (*os.File, error) {
+	ln := p.NetListener
 	if ln == nil {
 		return nil, errors.Wrap(errs.NilPtrUnexpected, " - NetListener")
 	}
@@ -135,18 +135,18 @@ func (r *Restarter) GetListenerFile() (*os.File, error) {
 	return nil, fmt.Errorf("unsupported listener: %T", *ln)
 }
 
-func (r *Restarter) ForkChild() (*os.Process, error) {
+func (p *ProcessManager) ForkChild() (*os.Process, error) {
 	// Get the file descriptor for the listener and marshal the metadata to pass
 	// to the child in the environment.
-	lnFile, err := r.GetListenerFile()
+	lnFile, err := p.GetListenerFile()
 	if err != nil {
 		return nil, err
 	}
 	defer lnFile.Close()
-	if r.Address == "" {
-		r.Address = DefaultAddress
+	if p.Address == "" {
+		p.Address = DefaultAddress
 	}
-	address := r.Address
+	address := p.Address
 	l := Listener{
 		Address:  address,
 		FD:       3,
@@ -172,8 +172,7 @@ func (r *Restarter) ForkChild() (*os.Process, error) {
 	}
 	execDir := filepath.Dir(execName)
 	// Spawn child process.
-	// p, err := os.StartProcess(execName, []string{execName}, &os.ProcAttr{
-	p, err := os.StartProcess(execName, os.Args, &os.ProcAttr{
+	proc, err := os.StartProcess(execName, os.Args, &os.ProcAttr{
 		Dir:   execDir,
 		Env:   environment,
 		Files: files,
@@ -182,21 +181,27 @@ func (r *Restarter) ForkChild() (*os.Process, error) {
 	if err != nil {
 		return nil, err
 	}
-	return p, nil
+	return proc, nil
 }
 
-func (r *Restarter) Run() error {
-	go r.Sub.Run()
-	signal.Notify(r.Signal, syscall.SIGHUP, syscall.SIGUSR2, syscall.SIGINT, syscall.SIGQUIT)
+func (p *ProcessManager) Run() error {
+
+	go p.Sub.Run()
+
+	signal.Notify(p.Signal, syscall.SIGHUP, syscall.SIGUSR2, syscall.SIGINT, syscall.SIGQUIT)
+
 	for {
+
 		select {
-		case s := <-r.Signal:
+
+		case s := <-p.Signal:
+
 			switch s {
 			case syscall.SIGHUP:
 				// Fork a child process.
-				w := r.Sub.WaitTime()
+				w := p.Sub.WaitTime()
 				time.Sleep(w)
-				_, err := r.ForkChild()
+				_, err := p.ForkChild()
 				if err != nil {
 					continue
 				}
@@ -204,14 +209,14 @@ func (r *Restarter) Run() error {
 				// timeout to Shutdown.
 				ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 				defer cancel()
-				r.Sub = nil
+				p.Sub = nil
 				// Return any errors during shutdown.
-				return r.Server.Shutdown(ctx)
+				return p.Server.Shutdown(ctx)
 			case syscall.SIGUSR2:
 				// Fork a child process.
-				w := r.Sub.WaitTime()
+				w := p.Sub.WaitTime()
 				time.Sleep(w)
-				_, err := r.ForkChild()
+				_, err := p.ForkChild()
 				if err != nil {
 					continue
 				}
@@ -221,16 +226,17 @@ func (r *Restarter) Run() error {
 				ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 				defer cancel()
 				// Return any errors during shutdown.
-				return r.Server.Shutdown(ctx)
+				return p.Server.Shutdown(ctx)
 			}
-		case e := <-r.Sub.Error():
+
+		case e := <-p.Sub.Error():
 			switch e {
 			case nil:
 			default:
 				// Fork a child process.
-				w := r.Sub.WaitTime()
+				w := p.Sub.WaitTime()
 				time.Sleep(w)
-				_, err := r.ForkChild()
+				_, err := p.ForkChild()
 				if err != nil {
 					continue
 				}
@@ -239,35 +245,41 @@ func (r *Restarter) Run() error {
 				ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 				defer cancel()
 				// Return any errors during shutdown.
-				return r.Server.Shutdown(ctx)
+				return p.Server.Shutdown(ctx)
 			}
-		case <-r.Sub.Done():
+
+		case <-p.Sub.Done():
 			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 			defer cancel()
 			// Return any errors during shutdown.
-			return r.Server.Shutdown(ctx)
+			return p.Server.Shutdown(ctx)
+
 		default:
 			time.Sleep(100 * time.Millisecond)
+
 		}
 	}
 }
 
-func (r *Restarter) Handler(w http.ResponseWriter, req *http.Request) {
+func (p *ProcessManager) Handler(w http.ResponseWriter, req *http.Request) {
 	fmt.Fprintf(w, "Hello from %v!\n", os.Getpid())
 }
 
-func (r *Restarter) StartServer() error {
-	http.HandleFunc("/hello", r.Handler)
-	if r.Address == "" {
-		r.Address = DefaultAddress
+func (p *ProcessManager) StartServer() (err error) {
+
+	http.HandleFunc("/hello", p.Handler)
+
+	if p.Address == "" {
+		p.Address = DefaultAddress
 	}
-	r.Server = &http.Server{
-		Addr: r.Address,
+
+	p.Server = &http.Server{
+		Addr: p.Address,
 	}
-	var err error
+
 	go func() {
-		err = r.Server.Serve(*r.NetListener)
+		err = p.Server.Serve(*p.NetListener)
 	}()
 
-	return err
+	return
 }
