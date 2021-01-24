@@ -32,11 +32,11 @@ func (x *CX) WaitTime() time.Duration {
 }
 
 func (x *CX) OnFork() {
-	fmt.Printf("Forking")
+	fmt.Println("Forking")
 }
 
 func (x *CX) OnQuit() {
-	fmt.Printf("Exiting")
+	fmt.Println("Exiting")
 }
 
 func (x *CX) Run() {
@@ -51,7 +51,7 @@ func (x *CX) Run() {
 			x.doneC <- struct{}{}
 		default:
 		}
-		time.Sleep(5 * time.Second)
+		time.Sleep(time.Second / 10)
 	}
 }
 
