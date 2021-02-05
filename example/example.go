@@ -43,7 +43,7 @@ func (x *CX) Run() {
 			x.doneC <- struct{}{}
 		default:
 		}
-		time.Sleep(5 * time.Second)
+		time.Sleep(time.Second / 10)
 	}
 }
 
