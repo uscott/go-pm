@@ -1,4 +1,5 @@
 github.com/pkg/errors v0.9.1 h1:FEBLx1zS214owpjy7qsBeixbURkuhQAwrK5UwLGTwt4=
 github.com/pkg/errors v0.9.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
-github.com/uscott/go-tools v1.2.6-0.20210117205547-c8c9892cfe3a h1:2j/rtnRl1QGUHreygeSbNiG93/8kBfteuFzI9e2BBZA=
-github.com/uscott/go-tools v1.2.6-0.20210117205547-c8c9892cfe3a/go.mod h1:BhqbQ5B6Y3vjCN6LAp/wdV8vKDeYXMW8wk2458ZGabE=
+github.com/shopspring/decimal v1.2.0/go.mod h1:DKyhrW/HYNuLGql+MJL6WCR6knT2jwCFRcu2hWCYk4o=
+github.com/uscott/go-tools v1.2.7 h1:ue1N2fhurMw3qMibdOkQq4gY3O+FvSKaW/+RANZhMho=
+github.com/uscott/go-tools v1.2.7/go.mod h1:DW6zAcyYw7bc+8x58Cfpn52Bf/e/jvjqKnoA/ZqEvdE=
