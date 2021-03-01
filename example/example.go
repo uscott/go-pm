@@ -27,6 +27,9 @@ func (x *CX) Error() chan error {
 	return x.errorC
 }
 
+func (x *CX) OnFork() { fmt.Println("Fork") }
+func (x *CX) OnQuit() { fmt.Println("Quit") }
+
 func (x *CX) WaitTime() time.Duration {
 	return x.wait
 }
@@ -39,8 +42,10 @@ func (x *CX) Run() {
 		switch n {
 		case 0:
 			x.errorC <- fmt.Errorf("n == 0")
+			return
 		case 19:
 			x.doneC <- struct{}{}
+			return
 		default:
 		}
 		time.Sleep(time.Second / 10)
@@ -50,7 +55,7 @@ func (x *CX) Run() {
 func main() {
 
 	x := NewCX()
-	x.wait = 15 * time.Second
+	x.wait = 0
 
 	pm, err := pm.NewProcessManager(":8008")
 	if err != nil {
