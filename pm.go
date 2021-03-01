@@ -29,6 +29,8 @@ type ProcessManager struct {
 type Subordinate interface {
 	Done() chan struct{}
 	Error() chan error
+	OnFork()
+	OnQuit()
 	Run()
 	WaitTime() time.Duration
 }
@@ -199,6 +201,7 @@ func (p *ProcessManager) Run() error {
 			switch s {
 			case syscall.SIGHUP:
 				// Fork a child process.
+				go p.Sub.OnQuit()
 				w := p.Sub.WaitTime()
 				time.Sleep(w)
 				_, err := p.ForkChild()
@@ -214,6 +217,7 @@ func (p *ProcessManager) Run() error {
 				return p.Server.Shutdown(ctx)
 			case syscall.SIGUSR2:
 				// Fork a child process.
+				go p.Sub.OnFork()
 				w := p.Sub.WaitTime()
 				time.Sleep(w)
 				_, err := p.ForkChild()
@@ -221,6 +225,7 @@ func (p *ProcessManager) Run() error {
 					continue
 				}
 			case syscall.SIGINT, syscall.SIGQUIT:
+				go p.Sub.OnQuit()
 				// Create a context that will expire in 5 seconds and use this as a
 				// timeout to Shutdown.
 				ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -234,6 +239,7 @@ func (p *ProcessManager) Run() error {
 			case nil:
 			default:
 				// Fork a child process.
+				go p.Sub.OnFork()
 				w := p.Sub.WaitTime()
 				time.Sleep(w)
 				_, err := p.ForkChild()
@@ -249,13 +255,14 @@ func (p *ProcessManager) Run() error {
 			}
 
 		case <-p.Sub.Done():
+			go p.Sub.OnQuit()
 			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 			defer cancel()
 			// Return any errors during shutdown.
 			return p.Server.Shutdown(ctx)
 
 		default:
-			time.Sleep(100 * time.Millisecond)
+			time.Sleep(time.Millisecond)
 		}
 	}
 }
