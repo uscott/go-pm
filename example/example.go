@@ -6,7 +6,8 @@ import (
 	"os"
 	"time"
 
-	pm "github.com/uscott/go-pm"
+	"github.com/pkg/errors"
+	"github.com/uscott/go-pm"
 )
 
 type CX struct {
@@ -41,7 +42,7 @@ func (x *CX) Run() {
 		fmt.Println(n)
 		switch n {
 		case 0:
-			x.errorC <- fmt.Errorf("n == 0")
+			x.errorC <- errors.Errorf("n == 0")
 			return
 		case 19:
 			x.doneC <- struct{}{}
@@ -55,8 +56,6 @@ func (x *CX) Run() {
 func main() {
 
 	x := NewCX()
-	x.wait = 0
-
 	pm, err := pm.NewProcessManager(":8008")
 	if err != nil {
 		fmt.Printf("Exiting: %v\n", err.Error())
@@ -64,6 +63,7 @@ func main() {
 	}
 
 	pm.Sub = x
+
 	if err = pm.Run(); err != nil {
 		fmt.Printf("Error, exiting: %v\n", err)
 		os.Exit(1)
